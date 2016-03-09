@@ -199,6 +199,10 @@ body {
 
 
             console.log(fileinfo);
+            
+            
+            //loop through each file, find the one with the right filename, then request to open it.
+            //workaround until we can 'search' the bucket for a specific filename
 
             for (var key in fileinfo) {
                 // skip loop if the property is from prototype
@@ -209,7 +213,6 @@ body {
                     // skip loop if the property is from prototype
                     if (!obj.hasOwnProperty(prop)) continue;
 
-                    // your code
                     //console.log(prop + " = " + obj[prop]);
                 }
 
@@ -225,8 +228,6 @@ body {
 
             console.log("hash:" + filehash);
 
-
-
             if (filehash == null) {
                 console.log("no data with that passphrase");
                 //no data at that address
@@ -237,24 +238,21 @@ body {
                     $('#savestatus').html("no data with that passphrase. start typing below and press save to store it here.");
                 }
 
-
-
             } else {
-
-                //loop through each file, find the one with the right filename, then request to open it.
-                //workaround until we can 'search' the bucket for a specific filename
 
                 hash = client.createToken(METADISKbucketID, 'PULL').then(function(token) {
 
 
-
+					//request actual file from metadisk via it's hash
                     client.getFilePointer(METADISKbucketID, token.token, filehash).then(function(filepointer) {
 
-
+						
                         var download = client.resolveFileFromPointers(filepointer);
                         var getchunks = '';
 
+						
                         download.on('data', function(chunk) {
+                        	//server returns chunks if file is too large, so combine them here
                             getchunks += chunk;
                             console.log("got data chunk:" + chunk);
                         });
@@ -295,6 +293,8 @@ body {
 
     $(document).ready(function() {
 
+
+		//Initial setup of UI
 
         var METADISKusername = $('#METADISKusernameFORM').val();
         var METADISKpassword = $('#METADISKpasswordFORM').val();
@@ -517,6 +517,7 @@ body {
 
 
                     $("#setbucket" + obj.id).submit(function(event) {
+                    	//Set the bucket and start the app with this new info
                         event.preventDefault();
                         $('#METADISKbucketIDtext').html('');
                         startApp();
@@ -541,9 +542,6 @@ body {
         $("#notepad").submit(function(event) { //saving notepad data back to metadisk
             event.preventDefault();
 
-
-
-
             var METADISKusername = $('#METADISKusernameFORM').val();
             var METADISKpassword = $('#METADISKpasswordFORM').val();
             var METADISKbucketID = $('#METADISKbucketIDFORM').val();
@@ -565,7 +563,7 @@ body {
                 var rawtext = $('#notepadtext').val();
                 rawtext = rawtext.toString();
 
-                //encrypt the text
+                //encrypt the text within the browser
                 var encrypted = CryptoJS.AES.encrypt(rawtext, passphrase);
                 encrypted = encrypted.toString();
 
@@ -623,7 +621,6 @@ body {
                         error: function(data) {
                             console.log("problem saving data to bucket: " + METADISKbucketID);
                             console.log(data);
-
                             $('#save').val('retry');
                             $('#savestatus').html("<br clear='all' /><div align='center'><font color='red'>There was a problem saving to bucket: " + data.responseText + "</font></div>");
 
@@ -644,6 +641,9 @@ body {
         });
 
         //initialize if we have user info
+        //To change default user info, look for the input fields below and change the VALUE:
+        //METADISKusernameFORM METADISKpasswordFORM METADISKclientFORM and METADISKbucketIDFORM
+        //
         if (METADISKusername != "" && METADISKusername != "" && METADISKbucketID != "") {
             startApp();
         } else if (METADISKusername != "" && METADISKusername != "") {
