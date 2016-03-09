@@ -9,3 +9,20 @@ Simply type in a passphrase and type into the box below. Press SAVE. At any poin
 All data is encrypted in the browser before saving to MetaDisk using AES encryption, and you are welcome to inspect the source code to verify.
 
 I have hardcoded a MetaDisk account and bucket for demonstration purposes.
+
+
+
+#
+# Live Demo
+
+See this code in action at the following url:
+
+http://mycoinads.com/STORJnotepadDEMO/
+
+
+#
+# Known Issues
+
+metadisk-api sometimes gives errors saying 'shard not found' or a problem with a /challenges url
+
+If you keep retrying, it will eventually save. 
