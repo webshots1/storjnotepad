@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>STORJ notepad</title>
+
+	<link href='//fonts.googleapis.com/css?family=Maven+Pro' rel='stylesheet' type='text/css'>
+	<link href='//fonts.googleapis.com/css?family=Source+Code+Pro' rel='stylesheet' type='text/css'>
+	
+<style>
+
+html {
+	height: 100%;
+	width: 100%;
+	background-color: #FDFDFD;
+}
+body {
+	font-family: 'Maven Pro', sans-serif;
+	font-size: 18px;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+}
+
+#header {
+	height: 40px;
+	background: #4B9EFF;
+	padding: 0 8px;
+}
+
+#header-inner {
+	width: 800px;
+	margin: 0 auto;
+}
+
+#title {
+	line-height: 40px;
+	font-size: 20px;
+	color: white;
+	float: left;
+}
+
+#main {
+	width: 800px;
+	margin: 0 auto;
+	padding: 16px 8px 0 8px;
+	height: 60%; /*fallback*/
+	height: calc(100% - 56px);
+}
+
+#setup {
+	width: 800px;
+	margin: 0 auto;
+	padding: 16px 8px 0 8px;
+}
+
+.textarea {
+	font-family: 'Source Code Pro', monospace;
+	font-size: 16px;
+	border: 1px solid #575757;
+	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
+    box-sizing: border-box;         /* Opera/IE 8+ */
+    border-radius: 4px;
+}
+
+.fullform {
+	float: left;
+	margin-bottom: 12px;
+	overflow:auto;
+	width: calc(100%);
+	padding: 4px 8px;
+}
+
+#METADISKusernameFORM {
+	float: left;
+	margin-bottom: 12px;
+	overflow:auto;
+	width: calc(48%);
+	padding: 4px 8px;
+}
+
+#METADISKpasswordFORM {
+	float: right;
+	margin-bottom: 12px;
+	overflow:auto;
+	width: calc(48%);
+	padding: 4px 8px;
+}
+
+#METADISKclientFORM {
+	float: right;
+	margin-bottom: 12px;
+	overflow:auto;
+	width: calc(100%);
+	padding: 4px 8px;
+}
+
+#phrase {
+	float: left;
+	margin-bottom: 12px;
+	overflow:auto;
+	width: calc(100% - 96px);
+}
+
+#phrasetext {
+	height: 40px;
+	padding: 4px 8px;
+	width: 100%;
+}
+
+#notepad {
+	width: 800px;
+	height: 480px;
+	height: calc(100% - 16px);
+}
+
+#notepadtext {
+	width: 100%;
+	padding: 4px 8px;
+	float: left;
+	height: 600px;
+}
+
+#save {
+	float: right;
+	height: 40px;
+	width: 88px;
+	padding: 0;
+	background: white;
+	-webkit-appearance: none;
+}
+
+@media screen and (max-width: 800px) {
+    #main {width: auto;}
+    #notepad {width: 100%;}
+    #header-inner {width: 100%;}
+    #footer-container {width: 100%;}
+}
+
+</style>
+
+	
+	<script src='metadisk-client/dist/metadisk.browser.js'></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.1/jquery.min.js'></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/core-min.js'></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/sha256.js'></script>
+	<script src='https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js'></script>
+	
+<script>
+(function($) {
+
+
+    function startApp() { //main function handles actual notepad text. gets data from metadisk
+
+
+
+        var METADISKusername = $('#METADISKusernameFORM').val();
+        var METADISKpassword = $('#METADISKpasswordFORM').val();
+        var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+        var METADISKclient = $('#METADISKclientFORM').val();
+
+        console.log("using METADISKusername: " + METADISKusername);
+        console.log("using METADISKpassword: " + METADISKpassword);
+        console.log("using METADISKbucketID: " + METADISKbucketID);
+        console.log("using METADISKclient: " + METADISKclient);
+
+        var passphrase = $('#phrasetext').val();
+        passphrase = passphrase.toString();
+
+        //home page
+        if (passphrase == "") {
+            $('#save').css('color', '#AAAAAA');
+        } else {
+            $('#save').css('color', '#000000');
+        }
+
+        //run sha256 hash on passphrase
+        var hash = CryptoJS.SHA256(passphrase);
+        hash = hash.toString();
+
+        //connect to metadisk
+
+        // Create a client authenticated with your username and password
+        var client = new metadisk.Client(METADISKclient, {
+            basicauth: {
+                email: METADISKusername,
+                password: METADISKpassword
+            }
+        });
+
+
+        var filehash = null;
+
+        fileinfo = client.getFileInfo(METADISKbucketID, hash + ".txt").then(function(fileinfo) {
+
+            $('#notepadUI').show();
+            $('#connectstatus').html(" &nbsp; <font color='green'>Connected to " + METADISKclient + "</font>");
+
+
+            console.log(fileinfo);
+
+            for (var key in fileinfo) {
+                // skip loop if the property is from prototype
+                if (!fileinfo.hasOwnProperty(key)) continue;
+
+                var obj = fileinfo[key];
+                for (var prop in obj) {
+                    // skip loop if the property is from prototype
+                    if (!obj.hasOwnProperty(prop)) continue;
+
+                    // your code
+                    //console.log(prop + " = " + obj[prop]);
+                }
+
+                console.log(obj.filename);
+                if (obj.filename == hash + ".txt") {
+
+                    filehash = obj.hash;
+
+                }
+
+
+            }
+
+            console.log("hash:" + filehash);
+
+
+
+            if (filehash == null) {
+                console.log("no data with that passphrase");
+                //no data at that address
+                $('#notepadtext').val('');
+                $('#save').val('save');
+
+                if ($('#phrasetext').val() != "") {
+                    $('#savestatus').html("no data with that passphrase. start typing below and press save to store it here.");
+                }
+
+
+
+            } else {
+
+                //loop through each file, find the one with the right filename, then request to open it.
+                //workaround until we can 'search' the bucket for a specific filename
+
+                hash = client.createToken(METADISKbucketID, 'PULL').then(function(token) {
+
+
+
+                    client.getFilePointer(METADISKbucketID, token.token, filehash).then(function(filepointer) {
+
+
+                        var download = client.resolveFileFromPointers(filepointer);
+                        var getchunks = '';
+
+                        download.on('data', function(chunk) {
+                            getchunks += chunk;
+                            console.log("got data chunk:" + chunk);
+                        });
+
+
+                        download.on('end', function() {
+
+                            //now you have getchunks with all of the data
+                            //you already have passphrase with the key
+                            console.log("decrypting full chunk: " + getchunks);
+                            console.log("with passphrase: " + passphrase);
+
+                            if (getchunks == "") {
+                                $('#notepadtext').val('');
+                            } else {
+                                var decrypted = CryptoJS.AES.decrypt(getchunks, passphrase).toString(CryptoJS.enc.Utf8);
+                                $('#notepadtext').val(decrypted);
+                                console.log("decrypted text:" + decrypted);
+                            }
+                            $('#save').val('save');
+
+                        });
+
+
+                        console.log(download)
+                        console.log(filehash);
+                    });
+                });
+
+            }
+
+        });
+
+
+
+
+    }
+
+    $(document).ready(function() {
+
+
+        var METADISKusername = $('#METADISKusernameFORM').val();
+        var METADISKpassword = $('#METADISKpasswordFORM').val();
+        var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+        var METADISKclient = $('#METADISKclientFORM').val();
+
+
+        console.log("using METADISKusername: " + METADISKusername);
+        console.log("using METADISKpassword: " + METADISKpassword);
+        console.log("using METADISKbucketID: " + METADISKbucketID);
+        console.log("using METADISKclient: " + METADISKclient);
+
+
+        var timer = null;
+
+        $("#phrase").submit(function(event) {
+            event.preventDefault();
+            $('#phrasetext').blur();
+            startApp();
+
+        });
+        $("#phrase").keyup(function() {
+            clearTimeout(timer);
+            $('#save').val('loading...');
+            var target = $(this);
+
+            timer = setTimeout(function() {
+                startApp();
+            }, 500);
+        });
+
+
+        $("#metadisksetup").submit(function(event) { //account creation
+            event.preventDefault();
+
+
+
+            var METADISKusername = $('#METADISKusernameFORM').val();
+            var METADISKpassword = $('#METADISKpasswordFORM').val();
+            var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+            var METADISKclient = $('#METADISKclientFORM').val();
+
+
+            console.log("using METADISKusername: " + METADISKusername);
+            console.log("using METADISKpassword: " + METADISKpassword);
+            console.log("using METADISKbucketID: " + METADISKbucketID);
+            console.log("using METADISKclient: " + METADISKclient);
+
+
+            if ($('#METADISKusernameDESIRED').val() != "" && $('#METADISKpasswordDESIRED').val() != "") {
+
+                console.log("registering user account: " + $('#METADISKusernameDESIRED').val() + "   " + $('#METADISKpasswordDESIRED').val());
+
+                var client = new metadisk.Client(METADISKclient);
+
+                // Register a user account
+                client.createUser($('#METADISKusernameDESIRED').val(), $('#METADISKpasswordDESIRED').val()).then(function(result) {
+                    console.log(result);
+
+                    $('#accountstatus').html("<div align='center'><font color='green'>Your account has been created<br><Br>Check your inbox and click to confirm your email address<br><Br>Once confirmed, press Connect below.</font></div>");
+
+                    $('#METADISKusernameFORM').val($('#METADISKusernameDESIRED').val());
+                    $('#METADISKpasswordFORM').val($('#METADISKpasswordDESIRED').val());
+
+
+
+
+                }, function(err) {
+                    console.log(err);
+                    $('#accountstatus').html("<br clear='all' /><div align='center'><font color='red'>Something went wrong: " + err + "</font></div>");
+
+                });
+
+
+
+
+            }
+
+
+        });
+
+
+
+
+        $("#publickey").submit(function(event) { //add public key to account
+            event.preventDefault();
+
+
+            var METADISKusername = $('#METADISKusernameFORM').val();
+            var METADISKpassword = $('#METADISKpasswordFORM').val();
+            var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+            var METADISKclient = $('#METADISKclientFORM').val();
+
+
+            console.log("using METADISKusername: " + METADISKusername);
+            console.log("using METADISKpassword: " + METADISKpassword);
+            console.log("using METADISKbucketID: " + METADISKbucketID);
+            console.log("using METADISKclient: " + METADISKclient);
+
+            console.log("adding public key to account:" + $('#publickeyDESIRED').val());
+
+            var client = new metadisk.Client(METADISKclient, {
+                basicauth: {
+                    email: METADISKusername,
+                    password: METADISKpassword
+                }
+            });
+
+
+
+            client.addPublicKey($('#publickeyDESIRED').val()).then(function(result) {
+                console.log(result);
+
+                $('#publickeytext').html("Key added");
+
+            }, function(err) {
+                console.log(err);
+                $('#publickeytext').html(err);
+
+            });
+
+        });
+
+
+
+
+        $("#thebucket").submit(function(event) { //create bucket
+            event.preventDefault();
+
+
+
+
+            var METADISKusername = $('#METADISKusernameFORM').val();
+            var METADISKpassword = $('#METADISKpasswordFORM').val();
+            var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+            var METADISKclient = $('#METADISKclientFORM').val();
+
+
+            console.log("using METADISKusername: " + METADISKusername);
+            console.log("using METADISKpassword: " + METADISKpassword);
+            console.log("using METADISKbucketID: " + METADISKbucketID);
+            console.log("using METADISKclient: " + METADISKclient);
+
+            console.log("connecting with username:" + METADISKusername);
+
+            var client = new metadisk.Client(METADISKclient, {
+                basicauth: {
+                    email: METADISKusername,
+                    password: METADISKpassword
+                }
+            });
+
+
+            client.createBucket().then(function(result) {
+
+                $('#METADISKbucketIDFORM').val(result.id);
+                $('#METADISKbucketIDtext').html("Bucket Created: " + result.id);
+                startApp();
+
+
+                console.log("Bucket Created: " + result.id);
+                console.log(result);
+            }, function(err) {
+
+
+                console.log(err);
+            });
+
+        });
+
+
+
+
+        $("#developer").submit(function(event) { //list all buckets
+            event.preventDefault();
+
+
+
+            var METADISKusername = $('#METADISKusernameFORM').val();
+            var METADISKpassword = $('#METADISKpasswordFORM').val();
+            var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+            var METADISKclient = $('#METADISKclientFORM').val();
+
+
+            console.log("using METADISKusername: " + METADISKusername);
+            console.log("using METADISKpassword: " + METADISKpassword);
+            console.log("using METADISKbucketID: " + METADISKbucketID);
+            console.log("using METADISKclient: " + METADISKclient);
+
+            // Create a client authenticated with your username and password
+            var client3 = new metadisk.Client(METADISKclient, {
+                basicauth: {
+                    email: METADISKusername,
+                    password: METADISKpassword
+                }
+            });
+
+
+            // list buckets
+            client3.getBuckets().then(function(buckets) {
+
+
+                $('#connectstatus').html(" &nbsp; <font color='green'>Connected to " + METADISKclient + "</font>");
+
+                console.log(buckets);
+
+                $('#METADISKbucketIDtext').html("");
+
+
+                for (var key in buckets) {
+                    // skip loop if the property is from prototype
+                    if (!buckets.hasOwnProperty(key)) continue;
+
+                    var obj = buckets[key];
+                    console.log("found bucket:" + obj.id);
+
+                    theclick = 'document.getElementById("METADISKbucketIDFORM").value="' + obj.id + '";';
+
+                    $('#METADISKbucketIDtext').append("<form id='setbucket" + obj.id + "'><input type='submit' class='textarea' value='Use Bucket: " + obj.id + "' onclick='" + theclick + "'></form>");
+
+
+                    $("#setbucket" + obj.id).submit(function(event) {
+                        event.preventDefault();
+                        $('#METADISKbucketIDtext').html('');
+                        startApp();
+
+                    });
+
+
+                }
+
+
+
+
+            });
+
+
+
+
+        });
+
+
+
+        $("#notepad").submit(function(event) { //saving notepad data back to metadisk
+            event.preventDefault();
+
+
+
+
+            var METADISKusername = $('#METADISKusernameFORM').val();
+            var METADISKpassword = $('#METADISKpasswordFORM').val();
+            var METADISKbucketID = $('#METADISKbucketIDFORM').val();
+            var METADISKclient = $('#METADISKclientFORM').val();
+
+
+            console.log("using METADISKusername: " + METADISKusername);
+            console.log("using METADISKpassword: " + METADISKpassword);
+            console.log("using METADISKbucketID: " + METADISKbucketID);
+            console.log("using METADISKclient: " + METADISKclient);
+
+
+            var passphrase = $('#phrasetext').val();
+            passphrase = passphrase.substring(0, 10000);
+
+            if (passphrase != "") {
+
+                //get text
+                var rawtext = $('#notepadtext').val();
+                rawtext = rawtext.toString();
+
+                //encrypt the text
+                var encrypted = CryptoJS.AES.encrypt(rawtext, passphrase);
+                encrypted = encrypted.toString();
+
+                $('#save').val('saving...');
+                $('#savestatus').html("saving data to MetaDisk, please wait...");
+
+
+                //run sha256 hash on passphrase
+                var hash = CryptoJS.SHA256(passphrase);
+                hash = hash.toString();
+
+                //send data to STORJ
+
+                // Create a client authenticated with your username and password
+                var client4 = new metadisk.Client(METADISKclient, {
+                    basicauth: {
+                        email: METADISKusername,
+                        password: METADISKpassword
+                    }
+                });
+
+                console.log("create token for bucket:" + METADISKbucketID);
+
+                // Create a PUSH token
+                client4.createToken(METADISKbucketID, 'PUSH').then(function(token) {
+
+                    console.log("saving the encrypted data to metadisk: " + encrypted);
+                    console.log("using token: " + token.token);
+
+                    //convert encrypted textarea text into a fake .txt file to save to Metadisk
+                    var fd = new FormData();
+                    fd.append('file', new Blob([encrypted], {
+                        type: 'text/html'
+                    }), hash + '.txt');
+
+                    //send data to server
+                    $.ajax({
+                        url: METADISKclient + '/buckets/' + METADISKbucketID + '/files',
+                        type: 'PUT',
+                        beforeSend: function(request) {
+                            request.setRequestHeader("x-token", token.token);
+                            request.setRequestHeader("x-filesize", encrypted.length);
+                        },
+
+                        data: fd,
+                        dataType: 'json',
+                        contentType: false, //This piece took me hours to figure out
+                        processData: false, // don't try to get fancy with submitted data, just save it
+                        success: function(data) {
+                            console.log("data saved to bucket: " + METADISKbucketID);
+                            console.log("data: " + data);
+                            $('#savestatus').html("<br clear='all' /><div align='center'><font color='green'>Data saved to bucket: " + METADISKbucketID + "</font></div>");
+                            $('#save').val('save');
+                        },
+                        error: function(data) {
+                            console.log("problem saving data to bucket: " + METADISKbucketID);
+                            console.log(data);
+
+                            $('#save').val('retry');
+                            $('#savestatus').html("<br clear='all' /><div align='center'><font color='red'>There was a problem saving to bucket: " + data.responseText + "</font></div>");
+
+                        }
+                    });
+
+                });
+
+
+
+
+            }
+
+        });
+
+        $("#notepad").keyup(function() {
+            $('#save').val('save');
+        });
+
+        //initialize if we have user info
+        if (METADISKusername != "" && METADISKusername != "" && METADISKbucketID != "") {
+            startApp();
+        } else if (METADISKusername != "" && METADISKusername != "") {
+            //startApp();
+            //list buckets?
+
+        }
+    });
+})(jQuery);
+	</script>
+
+
+</head>
+<body>
+	<div id="header">
+		<div id="header-inner">
+			<div id="title">STORJ notepad</div>
+		</div>
+	</div>	
+	<div id="setup">
+		
+  <fieldset id="initialsetup" style="display:none">
+    <legend>Initial MetaDisk Registration:</legend>
+		<form id="metadisksetup">
+			<input id="METADISKusernameDESIRED" class="fullform textarea" type="text" placeholder="Email Address" autocapitalize="none" autocomplete="off" value="">
+			<input id="METADISKpasswordDESIRED" class="fullform textarea" type="text" placeholder="Desired MetaDisk Password" autocapitalize="none" autocomplete="off" value="">
+			<input id="connect" type="submit" class="textarea" value="Create MetaDisk Account "><span id="accountstatus"></span>
+		</form>
+  </fieldset>
+		
+		
+	</div>
+		<br clear="all"/>
+		
+		
+		
+		
+	<div id="developersetup" style="display:none">
+		
+  <fieldset>
+    <legend>Connection (<a href="#" onclick="$('#initialsetup').show();">click here if you don't have an account</a>):</legend>
+		<form id="developer">
+			<input id="METADISKusernameFORM" class="textarea" type="text" placeholder="MetaDisk Username" autocapitalize="none" autocomplete="on" value="storjdemo@mailinator.com">
+			<input id="METADISKpasswordFORM" class="textarea" type="text" placeholder="MetaDisk Password" autocapitalize="none" autocomplete="on" value="password">	
+			<input id="METADISKclientFORM" class="textarea" type="text" placeholder="MetaDisk Client URL" value="https://api.metadisk.org">
+			<input id="connect" type="submit" class="textarea" value="Connect">
+		</form>
+  </fieldset>
+		
+		
+	</div>
+	
+	
+	<div align="center">
+	<div id="header-inner" align="left">
+		
+	
+	This is a demo for saving text to the STORJ MetaDisk.<Br><Br>
+	
+	Simply type in a passphrase and type into the box below. Press SAVE. At any point you can return and type the same passphrase to retrieve the data.<br><br>
+	
+	
+	All data is encrypted in the browser before saving to MetaDisk using AES encryption, and you are welcome to inspect the source code to verify.<br><br>
+	
+	I have hardcoded a MetaDisk account and bucket for demonstration purposes.<br><br>
+	
+	For a more advanced demo which allows you to create your own accounts and buckets:<br><a href="/STORJnotepad2/">click here</a>	
+		
+	<br clear="all"/>	<br clear="all"/>
+		
+	<span id="connectstatus"></span>
+	
+		<br clear="all"/>
+		
+	<span id="savestatus"></span>
+	
+		<br clear="all"/>
+	
+	</div>
+	</div>
+		
+		<div id="thebucketsetup" style="display:none">
+		
+  <fieldset>
+    <legend>Bucket:</legend>
+		<form id="thebucket">
+			<input id="METADISKbucketIDFORM" class="fullform textarea" type="text" placeholder="MetaDisk Bucket ID" value="56e02f13d6185bf403ba7843">
+			<input id="connect" type="submit" class="textarea" value="Create New Bucket">
+		</form>			
+			<span id="METADISKbucketIDtext"></span>
+
+  </fieldset>
+		
+		
+	</div>
+		<br clear="all"/>
+		
+	
+	
+			
+		<div id="publickeysetup"  style="display:none">
+		
+  <fieldset>
+    <legend>Add Public Key:</legend>
+		<form id="publickey">
+			<input id="publickeyDESIRED" class="fullform textarea" type="text" placeholder="Public Key (BTC/SJCX Address)" value="">
+			<input id="connect" type="submit" class="textarea" value="Set">
+			<span id="publickeytext"></span>
+		</form>
+  </fieldset>
+		
+		
+	</div>
+		<br clear="all"/>
+		
+	
+	
+	
+	
+	
+		
+		
+	<div id="main">
+
+  <fieldset style="display:none" id="notepadUI">
+    <legend>Notepad:</legend>
+    
+		<form id="phrase">
+			<input id="phrasetext" class="textarea" type="text" placeholder="enter a passphrase" autocapitalize="none">
+		</form>
+		<form id="notepad">
+			<input id="save" class="textarea" type="submit" value="save">
+			<textarea id="notepadtext" class="textarea" spellcheck='false'></textarea>
+		</form>
+  </fieldset>
+		
+		<br clear="all"/>
+		
+		
+		
+	</div>
+</body>
+</html>
