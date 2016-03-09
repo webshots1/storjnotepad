@@ -23,6 +23,6 @@ http://mycoinads.com/STORJnotepadDEMO/
 #
 # Known Issues
 
-metadisk-api sometimes gives errors saying 'shard not found' or a problem with a /challenges url
+metadisk-api running on api.metadisk.org sometimes gives errors saying 'shard not found' or a problem with a /challenges url when trying to SAVE
 
 If you keep retrying, it will eventually save. 
