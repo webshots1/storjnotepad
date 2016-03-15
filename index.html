@@ -185,7 +185,7 @@ body {
         var client = new metadisk.Client(METADISKclient, {
             basicauth: {
                 email: METADISKusername,
-                password: METADISKpassword
+                password: CryptoJS.SHA256(METADISKpassword)
             }
         });
 
@@ -351,7 +351,7 @@ body {
                 var client = new metadisk.Client(METADISKclient);
 
                 // Register a user account
-                client.createUser($('#METADISKusernameDESIRED').val(), $('#METADISKpasswordDESIRED').val()).then(function(result) {
+                client.createUser($('#METADISKusernameDESIRED').val(), CryptoJS.SHA256($('#METADISKpasswordDESIRED').val()) ).then(function(result) {
                     console.log(result);
 
                     $('#accountstatus').html("<div align='center'><font color='green'>Your account has been created<br><Br>Check your inbox and click to confirm your email address<br><Br>Once confirmed, press Connect below.</font></div>");
@@ -399,7 +399,7 @@ body {
             var client = new metadisk.Client(METADISKclient, {
                 basicauth: {
                     email: METADISKusername,
-                    password: METADISKpassword
+                    password: CryptoJS.SHA256(METADISKpassword)
                 }
             });
 
@@ -443,7 +443,7 @@ body {
             var client = new metadisk.Client(METADISKclient, {
                 basicauth: {
                     email: METADISKusername,
-                    password: METADISKpassword
+                    password: CryptoJS.SHA256(METADISKpassword)
                 }
             });
 
@@ -488,7 +488,7 @@ body {
             var client3 = new metadisk.Client(METADISKclient, {
                 basicauth: {
                     email: METADISKusername,
-                    password: METADISKpassword
+                    password: CryptoJS.SHA256(METADISKpassword)
                 }
             });
 
@@ -581,7 +581,7 @@ body {
                 var client4 = new metadisk.Client(METADISKclient, {
                     basicauth: {
                         email: METADISKusername,
-                        password: METADISKpassword
+                        password: CryptoJS.SHA256(METADISKpassword)
                     }
                 });
 
